@@ -109,29 +109,6 @@ int Human(){
 int main(int argc, char *argv[ ]){
 
 omp_set_num_threads( 3 );	// same as # of sections
-#pragma omp parallel sections
-{
-	#pragma omp section
-	{
-		Deer( );
-	}
-
-	#pragma omp section
-	{
-		Grain( );
-	}
-
-	#pragma omp section
-	{
-		Watcher( );
-	}
-
-	//#pragma omp section
-	//{
-	//	Human( );	// your own
-	//}
-}       // implied barrier -- all functions must return in order
-	// to allow any of them to get past here
 	NowMonth =    0;
 	NowYear  = 2022;
 
@@ -140,6 +117,29 @@ omp_set_num_threads( 3 );	// same as # of sections
 	NowHeight =  6.;
 	NowNumHumans = 1;
 	while(nowYear<2028){
+		#pragma omp parallel sections
+		{
+			#pragma omp section
+			{
+			Deer( );
+			}
+
+			#pragma omp section
+			{
+				Grain( );
+			}
+
+			#pragma omp section
+			{
+				Watcher( );
+			}
+
+			//#pragma omp section
+			//{
+			//	Human( );	// your own
+			//}
+		}       // implied barrier -- all functions must return in order
+		// to allow any of them to get past here
 		// compute a temporary next-value for this quantity
 		// based on the current state of the simulation:
 		. . .
