@@ -133,7 +133,7 @@ omp_set_num_threads( 3 );	// same as # of sections
 
 	// starting state (feel free to change this if you want):
 	NowNumDeer = 1;
-	NowHeight =  1.;
+	NowHeight =  6.;
 	NowNumHumans = 1;
 	while(nowYear<2028){
 		// compute a temporary next-value for this quantity
