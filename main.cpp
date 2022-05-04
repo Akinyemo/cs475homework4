@@ -13,11 +13,12 @@ int	NowMonth;		// 0 - 11
 float	NowPrecip;		// inches of rain per month
 float	NowTemp;		// temperature this month
 float	NowHeight;		// grain height in inches
-int	NowNumDeer;		// number of deer in the current population
-int     NowNumHumans;              //number of humans in current population
+int	    NowNumDeer;		// number of deer in the current population
+int     NowNumHunters;              //number of humans in current population
 
 const float GRAIN_GROWS_PER_MONTH =		9.0;
 const float ONE_DEER_EATS_PER_MONTH =		1.0;
+const float ONE_HUNTER_EATS_PER_MONTH = 1.0
 
 const float AVG_PRECIP_PER_MONTH =		7.0;	// average
 const float AMP_PRECIP_PER_MONTH =		6.0;	// plus or minus
@@ -64,19 +65,23 @@ int Deer(){
         	nextNumDeer++;
 	else if( nextNumDeer > carryingCapacity )
         	nextNumDeer--;
-	
+
+    if(nextNumDeer > 2)
+        nextNumDeer = nextNumDeer - (int)(NowNumHunters * ONE_HUNTER_EATS_PER_MONTH);
+
 	if( nextNumDeer < 0 )
         	nextNumDeer = 0;
-	return nextNumDeer;	
+
+	return nextNumDeer;
 }
 
 int Grain(){
-	float tempFactor = exp(-SQR(NowTemp-MIDTEMP)/10.));
+	float tempFactor = exp(-SQR((NowTemp-MIDTEMP)/10.));
 	float precipFactor = exp(-SQR((NowPrecip-MIDPRECIP)/10.));
 	float nextHeight = NowHeight;
  	nextHeight += tempFactor * precipFactor * GRAIN_GROWS_PER_MONTH;
  	nextHeight -= (float)NowNumDeer * ONE_DEER_EATS_PER_MONTH;
-	if( nextHeight < 0. ) 
+	if( nextHeight < 0. )
 		nextHeight = 0.;
 	return nextHeight;
 }
@@ -85,24 +90,32 @@ void Watcher(){
 	printf("%d,%f,%f,%d,%d\n",NowMonth,NowTemp,NowPrecip,NowDeer,NowHeight); / Current A
 	//printf("%d,%f,%f,%d,%d,%d\n",NowMonth,NowTemp,NowPrecip,NowDeer,NowHeight,NowHumans);
 	float ang = (  30.*(float)NowMonth + 15.  ) * ( M_PI / 180. );
-		
+
 	float temp = AVG_TEMP - AMP_TEMP * cos( ang );
 	NowTemp = temp + Ranf( &seed, -RANDOM_TEMP, RANDOM_TEMP );
 
 	float precip = AVG_PRECIP_PER_MONTH + AMP_PRECIP_PER_MONTH * sin( ang );
 	NowPrecip = precip + Ranf( &seed,  -RANDOM_PRECIP, RANDOM_PRECIP );
 	if( NowPrecip < 0. )
-		NowPrecip = 0.;	
+		NowPrecip = 0.;
 	}
 	nowMonth++;
 	if(nowMonth >= 12){
 		nowYear++;
 		nowMonth = 0;
-	}	
+	}
 }
 
-int Human(){
-	return 1;	
+int Hunter(){
+	int nextNumHunters = NowNumHunters;
+	if( NowNumDeer > 2 )
+        	nextNumHunters++;
+	else
+        	nextNumHunters--;
+
+	if( nextNumHunters < 0 )
+        	nextNumHunters = 0;
+	return nextNumHunters;
 }
 
 
@@ -113,15 +126,15 @@ omp_set_num_threads( 3 );	// same as # of sections
 	NowYear  = 2022;
 
 	// starting state (feel free to change this if you want):
-	NowNumDeer = 1;
+	NowNumDeer = 2;
 	NowHeight =  6.;
-	NowNumHumans = 1;
+	NowNumHunters = 1;
 	while(nowYear<2028){
 		#pragma omp parallel sections
 		{
 			#pragma omp section
 			{
-			Deer( );
+			    Deer( );
 			}
 
 			#pragma omp section
@@ -136,31 +149,30 @@ omp_set_num_threads( 3 );	// same as # of sections
 
 			//#pragma omp section
 			//{
-			//	Human( );	// your own
+			//	Hunter( );	// your own
 			//}
 		}       // implied barrier -- all functions must return in order
 		// to allow any of them to get past here
 		// compute a temporary next-value for this quantity
 		// based on the current state of the simulation:
-		. . .
 
 		// DoneComputing barrier:
 		#pragma omp barrier
 		int nextNumDeer = Deer();
 		int nextHeight = Grain();
-		//int nextNumHumans = Human();
+		int nextNumHunters = Hunter();
 
 		// DoneAssigning barrier:
-		#pragma omp barrier	
+		#pragma omp barrier
 		NowNumDeer = nextNumDeer;
 		NowHeight = nextHeight;
-		//NowNumHumans = nextNumHumans;
+		NowNumHunters = nextNumHunters;
 
 		// DonePrinting barrier:
-		#pragma omp barrier	
+		#pragma omp barrier
 		Watcher();
-		
+
 	}
-	
+
 
 }
