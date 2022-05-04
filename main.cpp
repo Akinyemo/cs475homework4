@@ -54,7 +54,7 @@ omp_set_num_threads( 4 );	// same as # of sections
 
 	#pragma omp section
 	{
-		MyAgent( );	// your own
+		Human( );	// your own
 	}
 }       // implied barrier -- all functions must return in order
 	// to allow any of them to get past here
