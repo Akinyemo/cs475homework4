@@ -18,7 +18,7 @@ int     NowNumHunters;              //number of humans in current population
 
 const float GRAIN_GROWS_PER_MONTH =		9.0;
 const float ONE_DEER_EATS_PER_MONTH =		1.0;
-const float ONE_HUNTER_EATS_PER_MONTH = 1.0
+const float ONE_HUNTER_EATS_PER_MONTH = 1.0;
 
 const float AVG_PRECIP_PER_MONTH =		7.0;	// average
 const float AMP_PRECIP_PER_MONTH =		6.0;	// plus or minus
@@ -59,31 +59,30 @@ Ranf( unsigned int *seedp, int ilow, int ihigh )
 }
 
 void Deer(){
-	int nextNumDeer = NowNumDeer;
-	while(nowYear<2028){
+	while(NowYear<2028){
+	    int nextNumDeer = NowNumDeer;
 		int carryingCapacity = (int)( NowHeight );
 		if( nextNumDeer < carryingCapacity )
         		nextNumDeer++;
 		else if( nextNumDeer > carryingCapacity )
         		nextNumDeer--;
-	
-    		if(nextNumDeer > 2)
-        		nextNumDeer = nextNumDeer - (int)(NowNumHunters * ONE_HUNTER_EATS_PER_MONTH);
+
+    	nextNumDeer = nextNumDeer - (int)(NowNumHunters * ONE_HUNTER_EATS_PER_MONTH);
 
 		if( nextNumDeer < 0 )
         		nextNumDeer = 0;
 		#pragma omp barrier
-		
+
 		NowNumDeer = nextNumDeer;
 		#pragma omp barrier
-		
+
 		#pragma omp barrier
 	}
 }
 
 void Grain(){
 	float nextHeight = 0;
-	while(nowYear<2028){
+	while(NowYear<2028){
 		float tempFactor = exp(-SQR((NowTemp-MIDTEMP)/10.));
 		float precipFactor = exp(-SQR((NowPrecip-MIDPRECIP)/10.));
 		nextHeight = NowHeight;
@@ -92,22 +91,26 @@ void Grain(){
 		if( nextHeight < 0. )
 			nextHeight = 0.;
 		#pragma omp barrier
-		
+
 		NowHeight = nextHeight;
 		#pragma omp barrier
-		
+
 		#pragma omp barrier
-		
+
 	}
-	
+
 }
 
 void Watcher(){
-	while(nowYear<2028){
+	while(NowYear<2028){
 		#pragma omp barrier
-		
+
 		#pragma omp barrier
-		printf("%d,%f,%f,%d,%d,%d\n",NowMonth,NowTemp,NowPrecip,NowDeer,NowHeight,NowHunters);
+        //printf("Month:%d,Year:%d\n",NowMonth,NowYear);
+		//printf("%d,%f,%f,%d,%d,%d\n",NowMonth,NowTemp,NowPrecip,NowNumDeer,NowHeight,NowNumHunters);
+		//printf("Temp:%f,Precipitation:%f,Number of Deer:%d,Height of Grain:%f,Number of Hunters%d\n",NowTemp,NowPrecip,NowNumDeer,NowHeight,NowNumHunters);
+		printf("%d,%f,%f,%d,%f,%d\n",NowMonth,NowTemp,NowPrecip,NowNumDeer,NowHeight,NowNumHunters);
+        //printf("%d\n",NowNumHunters);
 		float ang = (  30.*(float)NowMonth + 15.  ) * ( M_PI / 180. );
 
 		float temp = AVG_TEMP - AMP_TEMP * cos( ang );
@@ -117,30 +120,30 @@ void Watcher(){
 		NowPrecip = precip + Ranf( &seed,  -RANDOM_PRECIP, RANDOM_PRECIP );
 		if( NowPrecip < 0. )
 			NowPrecip = 0.;
-		}
-		nowMonth++;
-		if(nowMonth >= 12){
-			nowYear++;
-			nowMonth = 0;
+		NowMonth++;
+		if(NowMonth >= 12){
+			NowYear++;
+			NowMonth = 0;
 		}
 		#pragma omp barrier
 	}
 }
 
 void Hunter(){
-	while(nowYear<2028){
+	while(NowYear<2028){
 		int nextNumHunters = NowNumHunters;
-		if( NowNumDeer > 2 )
+		if( NowNumDeer > 2 && nextNumHunters < NowNumDeer)
         		nextNumHunters++;
 		else
         		nextNumHunters--;
 
 		if( nextNumHunters < 0 )
         		nextNumHunters = 0;
+	    #pragma omp barrier
+		NowNumHunters = nextNumHunters;
+        //printf("%d\n",NowNumHunters);
 		#pragma omp barrier
-		NowNumHunters = NextNumHunters;
-		#pragma omp barrier
-		
+
 		#pragma omp barrier
 	}
 }
@@ -148,13 +151,13 @@ void Hunter(){
 
 int main(int argc, char *argv[ ]){
 
-omp_set_num_threads( 3 );	// same as # of sections
+omp_set_num_threads( 4 );	// same as # of sections
 	NowMonth =    0;
 	NowYear  = 2022;
 
 	// starting state (feel free to change this if you want):
-	NowNumDeer = 2;
-	NowHeight =  6.;
+	NowNumDeer = 8;
+	NowHeight =  10.;
 	NowNumHunters = 1;
 	#pragma omp parallel sections
 	{
@@ -173,12 +176,13 @@ omp_set_num_threads( 3 );	// same as # of sections
 			Watcher( );
 		}
 
-		//#pragma omp section
-		//{
-		//	Hunter( );	// your own
-		//}
+		#pragma omp section
+		{
+			Hunter( );	// your own
+		}
 	}       // implied barrier -- all functions must return in order
 		// to allow any of them to get past here
 		// compute a temporary next-value for this quantity
 		// based on the current state of the simulation:
+        return 0;
 }
