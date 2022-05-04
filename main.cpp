@@ -58,21 +58,27 @@ Ranf( unsigned int *seedp, int ilow, int ihigh )
         return (int)(  Ranf(seedp, low,high) );
 }
 
-int Deer(){
+void Deer(){
 	int nextNumDeer = NowNumDeer;
-	int carryingCapacity = (int)( NowHeight );
-	if( nextNumDeer < carryingCapacity )
-        	nextNumDeer++;
-	else if( nextNumDeer > carryingCapacity )
-        	nextNumDeer--;
+	while(nowYear<2028){
+		int carryingCapacity = (int)( NowHeight );
+		if( nextNumDeer < carryingCapacity )
+        		nextNumDeer++;
+		else if( nextNumDeer > carryingCapacity )
+        		nextNumDeer--;
+	
+    		if(nextNumDeer > 2)
+        		nextNumDeer = nextNumDeer - (int)(NowNumHunters * ONE_HUNTER_EATS_PER_MONTH);
 
-    if(nextNumDeer > 2)
-        nextNumDeer = nextNumDeer - (int)(NowNumHunters * ONE_HUNTER_EATS_PER_MONTH);
-
-	if( nextNumDeer < 0 )
-        	nextNumDeer = 0;
-
-	return nextNumDeer;
+		if( nextNumDeer < 0 )
+        		nextNumDeer = 0;
+		#pragma omp barrier
+		
+		NowNumDeer = nextNumDeer;
+		#pragma omp barrier
+		
+		#pragma omp barrier
+	}
 }
 
 void Grain(){
@@ -87,46 +93,56 @@ void Grain(){
 			nextHeight = 0.;
 		#pragma omp barrier
 		
-		NowNumDeer = nextNumDeer;
+		NowHeight = nextHeight;
 		#pragma omp barrier
 		
 		#pragma omp barrier
 		
 	}
-	return nextHeight;
 	
 }
 
 void Watcher(){
-	printf("%d,%f,%f,%d,%d\n",NowMonth,NowTemp,NowPrecip,NowDeer,NowHeight); / Current A
-	//printf("%d,%f,%f,%d,%d,%d\n",NowMonth,NowTemp,NowPrecip,NowDeer,NowHeight,NowHumans);
-	float ang = (  30.*(float)NowMonth + 15.  ) * ( M_PI / 180. );
+	while(nowYear<2028){
+		#pragma omp barrier
+		
+		#pragma omp barrier
+		printf("%d,%f,%f,%d,%d,%d\n",NowMonth,NowTemp,NowPrecip,NowDeer,NowHeight,NowHunters);
+		float ang = (  30.*(float)NowMonth + 15.  ) * ( M_PI / 180. );
 
-	float temp = AVG_TEMP - AMP_TEMP * cos( ang );
-	NowTemp = temp + Ranf( &seed, -RANDOM_TEMP, RANDOM_TEMP );
+		float temp = AVG_TEMP - AMP_TEMP * cos( ang );
+		NowTemp = temp + Ranf( &seed, -RANDOM_TEMP, RANDOM_TEMP );
 
-	float precip = AVG_PRECIP_PER_MONTH + AMP_PRECIP_PER_MONTH * sin( ang );
-	NowPrecip = precip + Ranf( &seed,  -RANDOM_PRECIP, RANDOM_PRECIP );
-	if( NowPrecip < 0. )
-		NowPrecip = 0.;
-	}
-	nowMonth++;
-	if(nowMonth >= 12){
-		nowYear++;
-		nowMonth = 0;
+		float precip = AVG_PRECIP_PER_MONTH + AMP_PRECIP_PER_MONTH * sin( ang );
+		NowPrecip = precip + Ranf( &seed,  -RANDOM_PRECIP, RANDOM_PRECIP );
+		if( NowPrecip < 0. )
+			NowPrecip = 0.;
+		}
+		nowMonth++;
+		if(nowMonth >= 12){
+			nowYear++;
+			nowMonth = 0;
+		}
+		#pragma omp barrier
 	}
 }
 
-int Hunter(){
-	int nextNumHunters = NowNumHunters;
-	if( NowNumDeer > 2 )
-        	nextNumHunters++;
-	else
-        	nextNumHunters--;
+void Hunter(){
+	while(nowYear<2028){
+		int nextNumHunters = NowNumHunters;
+		if( NowNumDeer > 2 )
+        		nextNumHunters++;
+		else
+        		nextNumHunters--;
 
-	if( nextNumHunters < 0 )
-        	nextNumHunters = 0;
-	return nextNumHunters;
+		if( nextNumHunters < 0 )
+        		nextNumHunters = 0;
+		#pragma omp barrier
+		NowNumHunters = NextNumHunters;
+		#pragma omp barrier
+		
+		#pragma omp barrier
+	}
 }
 
 
@@ -165,20 +181,4 @@ omp_set_num_threads( 3 );	// same as # of sections
 		// to allow any of them to get past here
 		// compute a temporary next-value for this quantity
 		// based on the current state of the simulation:
-
-		// DoneComputing barrier:
-		#pragma omp barrier
-		int nextNumDeer = Deer();
-		int nextHeight = Grain();
-		int nextNumHunters = Hunter();
-
-		// DoneAssigning barrier:
-		#pragma omp barrier
-		NowNumDeer = nextNumDeer;
-		NowHeight = nextHeight;
-		NowNumHunters = nextNumHunters;
-
-		// DonePrinting barrier:
-		#pragma omp barrier
-		Watcher();
 }
