@@ -150,7 +150,7 @@ omp_set_num_threads( 3 );	// same as # of sections
 		#pragma omp barrier	
 		NowNumDeer = nextNumDeer;
 		NowHeight = nextHeight;
-		NowNumHumans = nextNumHumans;
+		//NowNumHumans = nextNumHumans;
 
 		// DonePrinting barrier:
 		#pragma omp barrier	
