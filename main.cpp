@@ -75,15 +75,26 @@ int Deer(){
 	return nextNumDeer;
 }
 
-int Grain(){
-	float tempFactor = exp(-SQR((NowTemp-MIDTEMP)/10.));
-	float precipFactor = exp(-SQR((NowPrecip-MIDPRECIP)/10.));
-	float nextHeight = NowHeight;
- 	nextHeight += tempFactor * precipFactor * GRAIN_GROWS_PER_MONTH;
- 	nextHeight -= (float)NowNumDeer * ONE_DEER_EATS_PER_MONTH;
-	if( nextHeight < 0. )
-		nextHeight = 0.;
+void Grain(){
+	float nextHeight = 0;
+	while(nowYear<2028){
+		float tempFactor = exp(-SQR((NowTemp-MIDTEMP)/10.));
+		float precipFactor = exp(-SQR((NowPrecip-MIDPRECIP)/10.));
+		nextHeight = NowHeight;
+ 		nextHeight += tempFactor * precipFactor * GRAIN_GROWS_PER_MONTH;
+ 		nextHeight -= (float)NowNumDeer * ONE_DEER_EATS_PER_MONTH;
+		if( nextHeight < 0. )
+			nextHeight = 0.;
+		#pragma omp barrier
+		
+		NowNumDeer = nextNumDeer;
+		#pragma omp barrier
+		
+		#pragma omp barrier
+		
+	}
 	return nextHeight;
+	
 }
 
 void Watcher(){
@@ -129,29 +140,28 @@ omp_set_num_threads( 3 );	// same as # of sections
 	NowNumDeer = 2;
 	NowHeight =  6.;
 	NowNumHunters = 1;
-	while(nowYear<2028){
-		#pragma omp parallel sections
+	#pragma omp parallel sections
+	{
+		#pragma omp section
 		{
-			#pragma omp section
-			{
-			    Deer( );
-			}
+			Deer( );
+		}
 
-			#pragma omp section
-			{
-				Grain( );
-			}
+		#pragma omp section
+		{
+			Grain( );
+		}
 
-			#pragma omp section
-			{
-				Watcher( );
-			}
+		#pragma omp section
+		{
+			Watcher( );
+		}
 
-			//#pragma omp section
-			//{
-			//	Hunter( );	// your own
-			//}
-		}       // implied barrier -- all functions must return in order
+		//#pragma omp section
+		//{
+		//	Hunter( );	// your own
+		//}
+	}       // implied barrier -- all functions must return in order
 		// to allow any of them to get past here
 		// compute a temporary next-value for this quantity
 		// based on the current state of the simulation:
@@ -171,8 +181,4 @@ omp_set_num_threads( 3 );	// same as # of sections
 		// DonePrinting barrier:
 		#pragma omp barrier
 		Watcher();
-
-	}
-
-
 }
