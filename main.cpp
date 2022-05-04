@@ -82,8 +82,8 @@ int Grain(){
 }
 
 void Watcher(){
-	printf("%d:%d,%d,%d",NowMonth,NowYear,NowDeer,NowHeight); / Current A
-	//printf("%d:%d,%d,%d,%d",NowMonth,NowYear,NowDeer,NowHeight,NowHumans);
+	printf("%d,%f,%f,%d,%d\n",NowMonth,NowTemp,NowPrecip,NowDeer,NowHeight); / Current A
+	//printf("%d,%f,%f,%d,%d,%d\n",NowMonth,NowTemp,NowPrecip,NowDeer,NowHeight,NowHumans);
 	float ang = (  30.*(float)NowMonth + 15.  ) * ( M_PI / 180. );
 		
 	float temp = AVG_TEMP - AMP_TEMP * cos( ang );
@@ -99,6 +99,10 @@ void Watcher(){
 		nowYear++;
 		nowMonth = 0;
 	}	
+}
+
+int Human(){
+	return 1;	
 }
 
 
